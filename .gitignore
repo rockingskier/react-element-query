@@ -18,4 +18,3 @@ node_modules
 test/temp
 *.es5
 .cache
-dist
