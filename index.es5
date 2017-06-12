@@ -1,0 +1,264 @@
+'use strict';
+
+Object.defineProperty(exports, '__esModule', {
+  value: true
+});
+
+var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+
+var _get = function get(_x, _x2, _x3) { var _again = true; _function: while (_again) { var object = _x, property = _x2, receiver = _x3; _again = false; if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { _x = parent; _x2 = property; _x3 = receiver; _again = true; desc = parent = undefined; continue _function; } } else if ('value' in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } } };
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
+
+function _inherits(subClass, superClass) { if (typeof superClass !== 'function' && superClass !== null) { throw new TypeError('Super expression must either be null or a function, not ' + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+var _react = require('react');
+
+var _react2 = _interopRequireDefault(_react);
+
+var _reactDom = require('react-dom');
+
+var _lodashIdentity = require('lodash.identity');
+
+var _lodashIdentity2 = _interopRequireDefault(_lodashIdentity);
+
+var _lodashSortby = require('lodash.sortby');
+
+var _lodashSortby2 = _interopRequireDefault(_lodashSortby);
+
+var _lodashFirst = require('lodash.first');
+
+var _lodashFirst2 = _interopRequireDefault(_lodashFirst);
+
+var _lodashIsnumber = require('lodash.isnumber');
+
+var _lodashIsnumber2 = _interopRequireDefault(_lodashIsnumber);
+
+var _raf = require('raf');
+
+var _raf2 = _interopRequireDefault(_raf);
+
+var _pureRenderDecorator = require('pure-render-decorator');
+
+var _pureRenderDecorator2 = _interopRequireDefault(_pureRenderDecorator);
+
+var isBrowser = typeof window !== 'undefined';
+
+function _ref(componentOptions, component) {
+  componentOptions.onResize(component, componentOptions.sizes);
+}
+
+var ElementQuery = (function (_Component) {
+  _inherits(ElementQuery, _Component);
+
+  _createClass(ElementQuery, null, [{
+    key: 'propTypes',
+    value: {
+      children: _react.PropTypes.node.isRequired,
+      'default': _react.PropTypes.string,
+      sizes: _react.PropTypes.arrayOf(_react.PropTypes.shape({
+        name: _react.PropTypes.string.isRequired,
+        width: function width(props, propName, componentName) {
+          var size = props[propName];
+          if (!(0, _lodashIsnumber2['default'])(size)) {
+            return new Error(componentName + ' received a width of `' + size + '` for `' + props.name + '`. A number was expected.');
+          }
+
+          if (size === 0) {
+            return new Error(componentName + ' received a width of `' + size + '` for `' + props.name + '`. Widths are min-widths, and should be treated as "mobile-first". The default state can be set with the `default` prop, or even better with the "default" styles in CSS.');
+          }
+          return null;
+        }
+      })).isRequired,
+      makeClassName: _react.PropTypes.func
+    },
+    enumerable: true
+  }, {
+    key: 'defaultProps',
+    value: {
+      // if no default is defined, assume no className. This is the default browser
+      // behavior
+      'default': '',
+      sizes: [],
+      makeClassName: _lodashIdentity2['default'],
+      children: _react2['default'].createElement('span', null)
+    },
+    enumerable: true
+  }]);
+
+  function ElementQuery(props) {
+    _classCallCheck(this, _ElementQuery);
+
+    _get(Object.getPrototypeOf(_ElementQuery.prototype), 'constructor', this).call(this, props);
+    this.state = { size: props['default'], sizes: ElementQuery.sortSizes(this.props.sizes) };
+  }
+
+  _createClass(ElementQuery, [{
+    key: 'componentWillMount',
+    value: function componentWillMount() {
+      ElementQuery.register(this, this.state.sizes);
+    }
+  }, {
+    key: 'componentDidMount',
+    value: function componentDidMount() {
+      var _this = this;
+
+      this._isMounted = true;
+
+      ElementQuery.sizeComponent(this, this.state.sizes);
+      // wait a few frames then check sizes again
+      (0, _raf2['default'])(function () {
+        return (0, _raf2['default'])(function () {
+          if (_this._isMounted) {
+            ElementQuery.sizeComponent(_this, _this.state.sizes);
+          }
+        });
+      });
+    }
+  }, {
+    key: 'componentWillReceiveProps',
+    value: function componentWillReceiveProps(newProps) {
+      this.setState({ sizes: ElementQuery.sortSizes(newProps.sizes) });
+    }
+  }, {
+    key: 'componentWillUnmount',
+    value: function componentWillUnmount() {
+      this._isMounted = false;
+      ElementQuery.unregister(this);
+    }
+  }, {
+    key: 'setSize',
+    value: function setSize(size) {
+      this.setState({ size: size });
+    }
+  }, {
+    key: 'render',
+    value: function render() {
+      var size = isBrowser ? this.state.size : this.props['default'];
+      var className = size ? this.props.makeClassName(size) : '';
+      var makeChild = ElementQuery.makeChild;
+      var children = this.props.children;
+
+      var child = Array.isArray(children) && _react.Children.count(children) === 1 ? children[0] : children;
+
+      // because we're going to just apply the className onto the child, we can
+      // only accept one. React doesn't let us return an array of children.
+      // returning a wrapper div is undesirable because it creates un-expected DOM
+      // like real element queries, this enables the user to do things like wrap
+      // an `<li>` in an element query and not break HTML semantics, or use
+      // element query and not break expectations around things like flexbox.
+      return makeChild(_react.Children.only(child), className);
+    }
+  }], [{
+    key: 'listen',
+
+    // use only one global listener … for perf!
+    value: function listen() {
+      window.addEventListener('resize', ElementQuery.onResize);
+      ElementQuery._isListening = true;
+    }
+  }, {
+    key: 'unListen',
+    value: function unListen() {
+      window.removeEventListener('resize', ElementQuery.onResize);
+      ElementQuery._isListening = false;
+    }
+  }, {
+    key: 'register',
+    value: function register(component, sizes, onResize) {
+      if (!isBrowser) return;
+
+      ElementQuery._componentMap.set(component, {
+        sizes: sizes
+        // if a custom onResize callback is passed, e.g. using this lib just for
+        // the resize event listener, use that. Else, assume we're sizing the
+        // component
+        , onResize: onResize || ElementQuery.sizeComponent
+      });
+
+      if (!ElementQuery._isListening && isBrowser) ElementQuery.listen();
+    }
+  }, {
+    key: 'unregister',
+    value: function unregister(component) {
+      if (!isBrowser) return;
+
+      ElementQuery._componentMap['delete'](component);
+      if (!ElementQuery._componentMap.size && isBrowser) ElementQuery.unListen();
+    }
+  }, {
+    key: 'sizeComponents',
+    value: function sizeComponents() {
+      ElementQuery._componentMap.forEach(_ref);
+    }
+  }, {
+    key: 'sizeComponent',
+    value: function sizeComponent(component, sizes) {
+      var el = (0, _reactDom.findDOMNode)(component);
+      var width = el.clientWidth;
+      var smallestSize = (0, _lodashFirst2['default'])(sizes);
+
+      var matchedSize = '';
+      var matchedWidth = smallestSize.width;
+
+      // use Array#some() here because #forEach() has no early exit
+      sizes.some(function (test) {
+        // check for:
+        // 1. the el width is greater or equal to the test width
+        // 2. the el width is greater or equal to the min test width
+        if (width >= test.width && width >= matchedWidth) {
+          matchedSize = test.name;
+          matchedWidth = test.width;
+          return false;
+        }
+        // once that condition isn't true, we've found the correct match; bail
+        return true;
+      });
+      component.setSize(matchedSize);
+    }
+
+    // becuase we're going to itterate through by size, we need to ensure that the
+    // sizes are sorted
+  }, {
+    key: 'sortSizes',
+    value: function sortSizes(sizes) {
+      return (0, _lodashSortby2['default'])(sizes, 'width');
+    }
+  }, {
+    key: 'makeChild',
+    value: function makeChild(child, className) {
+      // just add our new class name onto the chilren, this alleviates the need to
+      // create a wrapper div
+      var classNames = [];
+      var existingClassName = child.props.className;
+      if (existingClassName) classNames.push(existingClassName);
+      if (className) classNames.push(className);
+
+      return (0, _react.cloneElement)(child, { className: classNames.join(' ') });
+    }
+  }, {
+    key: 'onResize',
+    value: function onResize() {
+      if (ElementQuery._frame) _raf2['default'].cancel(ElementQuery._frame);
+      ElementQuery._frame = (0, _raf2['default'])(ElementQuery.sizeComponents);
+    }
+  }, {
+    key: '_isListening',
+    value: false,
+    enumerable: true
+  }, {
+    key: '_componentMap',
+    value: new Map(),
+    enumerable: true
+  }]);
+
+  var _ElementQuery = ElementQuery;
+  ElementQuery = (0, _pureRenderDecorator2['default'])(ElementQuery) || ElementQuery;
+  return ElementQuery;
+})(_react.Component);
+
+exports['default'] = ElementQuery;
+module.exports = exports['default'];
+
