@@ -17,16 +17,16 @@ export default class ElementQuery extends Component {
     , sizes: PropTypes.arrayOf(PropTypes.shape({
       name: PropTypes.string.isRequired
       , width: (props, propName, componentName) => {
-          const size = props[propName]
-          if (!isNumber(size)) {
-            return new Error(`${componentName} received a width of \`${size}\` for \`${props.name}\`. A number was expected.`)
-          }
-
-          if (size === 0) {
-            return new Error(`${componentName} received a width of \`${size}\` for \`${props.name}\`. Widths are min-widths, and should be treated as "mobile-first". The default state can be set with the \`default\` prop, or even better with the "default" styles in CSS.`)
-          }
-          return null
+        const size = props[propName]
+        if (!isNumber(size)) {
+          return new Error(`${componentName} received a width of \`${size}\` for \`${props.name}\`. A number was expected.`)
         }
+
+        if (size === 0) {
+          return new Error(`${componentName} received a width of \`${size}\` for \`${props.name}\`. Widths are min-widths, and should be treated as "mobile-first". The default state can be set with the \`default\` prop, or even better with the "default" styles in CSS.`)
+        }
+        return null
+      }
     })).isRequired
     , makeClassName: PropTypes.func
   }
@@ -50,10 +50,14 @@ export default class ElementQuery extends Component {
   }
 
   componentDidMount () {
+    this._isMounted = true
+
     ElementQuery.sizeComponent(this, this.state.sizes)
     // wait a few frames then check sizes again
     raf(() => raf(() => {
-      ElementQuery.sizeComponent(this, this.state.sizes)
+      if (this._isMounted) {
+        ElementQuery.sizeComponent(this, this.state.sizes)
+      }
     }))
   }
 
@@ -62,6 +66,7 @@ export default class ElementQuery extends Component {
   }
 
   componentWillUnmount () {
+    this._isMounted = false
     ElementQuery.unregister(this)
   }
 
